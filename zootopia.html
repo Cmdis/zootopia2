@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>疯狂动物城2 - 巴士交互之旅</title>
+    <style>
+        :root {
+            --z-green: #57e389;
+            --z-blue: #00b4d8;
+            --z-purple: #4a2c7a;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- 容器：保持图片比例 --- */
+        .poster-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px; /* 限制最大宽度，防止过大 */
+            box-shadow: 0 0 50px rgba(0, 180, 216, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        /* --- 背景图片 --- */
+        .poster-img {
+            width: 100%;
+            height: auto;
+            display: block;
+            user-select: none;
+        }
+
+        /* --- 热区 (点击区域) 通用样式 --- */
+        .hotspot {
+            position: absolute;
+            cursor: pointer;
+            z-index: 10;
+            border-radius: 50%;
+            /* 开发调试用：如果想看点击区域在哪里，把下面 opacity 改成 0.3 */
+            background: rgba(255, 255, 255, 0); 
+            transition: all 0.3s ease;
+        }
+
+        .hotspot:hover {
+            box-shadow: 0 0 20px var(--z-green);
+            background: rgba(255, 255, 255, 0.1);
+            transform: scale(1.05);
+        }
+
+        /* --- 具体角色的位置 (百分比定位，确保响应式) --- */
+        
+        /* 尼克 (司机位置) */
+        .spot-nick { top: 58%; left: 68%; width: 12%; height: 12%; }
+        
+        /* 朱迪 (挂在右边) */
+        .spot-judy { top: 55%; left: 85%; width: 10%; height: 15%; }
+        
+        /* 闪电 (二层后排) */
+        .spot-flash { top: 28%; left: 68%; width: 10%; height: 10%; }
+        
+        /* 豹警官 (中间吃甜甜圈) */
+        .spot-clawhauser { top: 45%; left: 32%; width: 12%; height: 12%; }
+        
+        /* 牛局长 (中间严肃脸) */
+        .spot-bogo { top: 40%; left: 45%; width: 15%; height: 15%; }
+        
+        /* 大象 (顶层左侧) */
+        .spot-elephant { top: 25%; left: 20%; width: 15%; height: 15%; }
+
+        /* 夏奇羊 (顶层C位) - 或者是其他领舞角色 */
+        .spot-gazelle { top: 18%; left: 40%; width: 10%; height: 15%; }
+
+
+        /* --- 对话框样式 --- */
+        .dialogue-box {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            width: 90%;
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-left: 8px solid var(--z-green);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            opacity: 0;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 100;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .dialogue-box.active {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        .avatar-circle {
+            width: 60px;
+            height: 60px;
+            background: var(--z-purple);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            flex-shrink: 0;
+        }
+
+        .content h3 {
+            margin: 0 0 5px 0;
+            color: var(--z-purple);
+            text-transform: uppercase;
+            font-size: 1.1rem;
+        }
+
+        .content p {
+            margin: 0;
+            color: #333;
+            font-size: 1rem;
+            line-height: 1.4;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            cursor: pointer;
+            color: #999;
+            font-weight: bold;
+        }
+        .close-btn:hover { color: #333; }
+
+    </style>
+</head>
+<body>
+
+    <div class="poster-container">
+        <!-- ⚠️ 请确保你的图片文件名为 poster.jpg 并且在同一目录下 -->
+        <!-- 这里直接使用了占位图，实际使用时请替换 src 为你的本地图片路径 -->
+        <img src="poster.jpg" alt="Zootopia 2 Poster" class="poster-img" id="mainImage">
+        
+        <!-- 尼克 -->
+        <div class="hotspot spot-nick" 
+             data-name="尼克·王尔德" 
+             data-text="系好安全带，胡萝卜头！这次是 ZIMAX 级的飙车体验！🦊😎"
+             data-icon="🦊"></div>
+
+        <!-- 朱迪 -->
+        <div class="hotspot spot-judy" 
+             data-name="朱迪·霍普斯" 
+             data-text="嘿，Siri，你也想加入警局的大家庭吗？快来电影院找我们吧！🐰🚓"
+             data-icon="🐰"></div>
+
+        <!-- 闪电 -->
+        <div class="hotspot spot-flash" 
+             data-name="闪电" 
+             data-text="我......好......兴......奋......啊......🦥"
+             data-icon="🦥"></div>
+
+        <!-- 豹警官 -->
+        <div class="hotspot spot-clawhauser" 
+             data-name="本杰明·警官" 
+             data-text="天哪！你们看到那个巨大的甜甜圈广告了吗？它是我的了！🍩✨"
+             data-icon="🐆"></div>
+
+        <!-- 牛局长 -->
+        <div class="hotspot spot-bogo" 
+             data-name="牛局长" 
+             data-text="全员注意！保持队形！谁在后面唱歌？严肃点！🐂👮‍♂️"
+             data-icon="🐂"></div>
+
+        <!-- 大象 -->
+        <div class="hotspot spot-elephant" 
+             data-name="弗朗辛" 
+             data-text="嘿！上面的长颈鹿，别挡着我的风景！🐘"
+             data-icon="🐘"></div>
+             
+        <!-- 对话框UI -->
+        <div class="dialogue-box" id="dialogueBox">
+            <div class="close-btn" onclick="closeDialogue()">×</div>
+            <div class="avatar-circle" id="d-icon">?</div>
+            <div class="content">
+                <h3 id="d-name">角色名</h3>
+                <p id="d-text">对话内容...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const hotspots = document.querySelectorAll('.hotspot');
+        const dialogueBox = document.getElementById('dialogueBox');
+        const dName = document.getElementById('d-name');
+        const dText = document.getElementById('d-text');
+        const dIcon = document.getElementById('d-icon');
+
+        // 如果没有本地图片，这里只是为了演示，会弹窗提示
+        document.getElementById('mainImage').onerror = function() {
+            alert("请将你的海报图片重命名为 'poster.jpg' 并放在代码同一目录下即可看到完整效果！");
+            // 这里设置一个临时的网图防止页面空白（仅供演示）
+            this.src = "https://via.placeholder.com/800x1000/2d1b4e/ffffff?text=Please+Add+poster.jpg";
+        };
+
+        hotspots.forEach(spot => {
+            spot.addEventListener('click', function() {
+                // 获取数据
+                const name = this.getAttribute('data-name');
+                const text = this.getAttribute('data-text');
+                const icon = this.getAttribute('data-icon');
+
+                // 更新UI
+                dName.textContent = name;
+                dText.textContent = text;
+                dIcon.textContent = icon;
+
+                // 显示对话框
+                dialogueBox.classList.remove('active'); // 重置动画
+                setTimeout(() => {
+                    dialogueBox.classList.add('active');
+                }, 10);
+            });
+        });
+
+        function closeDialogue() {
+            dialogueBox.classList.remove('active');
+        }
+    </script>
+</body>
+</html>
